@@ -6,7 +6,7 @@ import speech_recognition as sr
 import requests
 import base64
 
-HF_TOKEN = "your_huggingface_token"
+HF_TOKEN = "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"
 API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1"
 HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"}
 
