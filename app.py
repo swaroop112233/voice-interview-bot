@@ -1,57 +1,69 @@
 import streamlit as st
+import speech_recognition as sr
 import requests
 from gtts import gTTS
-import base64
-import tempfile
+from pydub import AudioSegment
+from pydub.playback import play
 import os
+import tempfile
 
-# === SETUP SYSTEM PROMPT ===
+# === YOUR HUGGING FACE TOKEN ===
+HF_TOKEN = "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"  # Replace with your actual Hugging Face token
+
+# === SYSTEM PROMPT ===
 system_prompt = """You are Jyothi Swaroop. Respond as if you're Jyothi, speaking with warmth, honesty, and confidence.
 Give short, real, human-like answers that reflect Jyothi's life, growth mindset, and experiences."""
 
-# === HUGGING FACE INFERENCE API ===
-HF_TOKEN = "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"  # <-- Replace with your actual Hugging Face token
-API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
+# === HUGGING FACE INFERENCE API DETAILS ===
+API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1"
 HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"}
 
-def query_llm(system_prompt, user_input):
+
+def query_mistral(system_prompt, user_input):
     prompt = f"<s>[INST] {system_prompt}\nUser: {user_input} [/INST]"
-    response = requests.post(API_URL, headers=HEADERS, json={"inputs": prompt})
+    payload = {
+        "inputs": prompt,
+        "parameters": {"max_new_tokens": 150, "temperature": 0.7}
+    }
+    response = requests.post(API_URL, headers=HEADERS, json=payload)
     if response.status_code == 200:
-        return response.json()[0]['generated_text'].split('[/INST]')[-1].strip()
+        result = response.json()
+        return result[0]['generated_text'].split("[/INST]")[-1].strip()
     else:
         return f"Error: {response.status_code} - {response.text}"
 
-def text_to_audio(text):
+
+def speak(text):
     tts = gTTS(text)
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
         tts.save(fp.name)
-        return fp.name
+        sound = AudioSegment.from_mp3(fp.name)
+        play(sound)
+        os.remove(fp.name)
+
 
 # === STREAMLIT UI ===
-st.set_page_config(page_title="Voice Interview Bot (Jyothi Swaroop)", page_icon="🎤")
 st.title("🎤 Voice Interview Bot (Jyothi Swaroop)")
 st.write("Click below, ask your interview question, and get a voice answer!")
 
-recorded_audio = st.audio_recorder("🎙️ Click to Record", format="audio/wav")
+if st.button("🎙️ Start Recording"):
+    recognizer = sr.Recognizer()
+    with sr.Microphone() as source:
+        st.info("Listening... Speak your question clearly...")
+        audio = recognizer.listen(source)
 
-if recorded_audio is not None:
-    with st.spinner("Transcribing your question..."):
-        try:
-            transcript_response = requests.post(
-                "https://api.openai.com/v1/audio/transcriptions",
-                headers={"Authorization": f"Bearer sk-XXX", "Content-Type": "application/json"},
-                files={"file": recorded_audio, "model": (None, "whisper-1")}
-            )
-            user_input = transcript_response.json()['text']
-            st.success(f"You said: {user_input}")
+    try:
+        user_input = recognizer.recognize_google(audio)
+        st.success(f"You said: {user_input}")
 
-            response = query_llm(system_prompt, user_input)
-            st.markdown(f"<b>🧠 Bot says:</b> {response}", unsafe_allow_html=True)
+        # Query the model
+        answer = query_mistral(system_prompt, user_input)
+        st.write("🧠 Bot says:", answer)
 
-            mp3_file = text_to_audio(response)
-            with open(mp3_file, "rb") as audio_file:
-                st.audio(audio_file.read(), format="audio/mp3")
+        # Speak the answer
+        speak(answer)
 
-        except Exception as e:
-            st.error(f"Error processing audio: {e}")
+    except sr.UnknownValueError:
+        st.error("Sorry, I couldn’t understand your voice.")
+    except Exception as e:
+        st.error(f"Error: {e}")
