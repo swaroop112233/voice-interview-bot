@@ -8,7 +8,7 @@ import os
 import tempfile
 
 # === YOUR HUGGING FACE TOKEN ===
-HF_TOKEN = "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"  # Replace with your actual Hugging Face token
+HF_TOKEN = "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"  # Replace with your actual Hugging Face token
 
 # === SYSTEM PROMPT ===
 system_prompt = """You are Jyothi Swaroop. Respond as if you're Jyothi, speaking with warmth, honesty, and confidence.
