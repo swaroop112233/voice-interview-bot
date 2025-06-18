@@ -1,4 +1,6 @@
 streamlit
+pyttsx3
 speechrecognition
 requests
-gTTS
+gtts
+pyaudio
