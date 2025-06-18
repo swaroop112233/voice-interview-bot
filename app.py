@@ -10,7 +10,7 @@ system_prompt = """You are Jyothi Swaroop. Respond as if you're Jyothi, speaking
 Give short, real, human-like answers that reflect Jyothi's life, growth mindset, and experiences."""
 
 # === HUGGING FACE INFERENCE API ===
-HF_TOKEN = "hf_XXXX"  # <-- Replace with your actual Hugging Face token
+HF_TOKEN = "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"  # <-- Replace with your actual Hugging Face token
 API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.2"
 HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"}
 
