@@ -4,43 +4,40 @@ import requests
 from gtts import gTTS
 from pydub import AudioSegment
 from pydub.playback import play
-import os
 import tempfile
+import os
 
-# === YOUR HUGGING FACE TOKEN ===
-HF_TOKEN = "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"  # Replace with your actual Hugging Face token
+# === YOUR HUGGING FACE TOKEN from Streamlit secrets ===
+HF_TOKEN = st.secrets["HF_TOKEN"]
 
 # === SYSTEM PROMPT ===
 system_prompt = """You are Jyothi Swaroop. Respond as if you're Jyothi, speaking with warmth, honesty, and confidence.
 Give short, real, human-like answers that reflect Jyothi's life, growth mindset, and experiences."""
 
-# === HUGGING FACE INFERENCE API DETAILS ===
+# === HUGGING FACE INFERENCE API ===
 API_URL = "https://api-inference.huggingface.co/models/mistralai/Mistral-7B-Instruct-v0.1"
 HEADERS = {"Authorization": f"Bearer {HF_TOKEN}"}
 
-
 def query_mistral(system_prompt, user_input):
-    prompt = f"<s>[INST] {system_prompt}\nUser: {user_input} [/INST]"
+    full_prompt = f"<s>[INST] {system_prompt}\nUser: {user_input} [/INST]"
     payload = {
-        "inputs": prompt,
+        "inputs": full_prompt,
         "parameters": {"max_new_tokens": 150, "temperature": 0.7}
     }
     response = requests.post(API_URL, headers=HEADERS, json=payload)
+
     if response.status_code == 200:
-        result = response.json()
-        return result[0]['generated_text'].split("[/INST]")[-1].strip()
+        return response.json()[0]['generated_text'].split("[/INST]")[-1].strip()
     else:
         return f"Error: {response.status_code} - {response.text}"
-
 
 def speak(text):
     tts = gTTS(text)
     with tempfile.NamedTemporaryFile(delete=False, suffix=".mp3") as fp:
         tts.save(fp.name)
-        sound = AudioSegment.from_mp3(fp.name)
-        play(sound)
+        audio = AudioSegment.from_file(fp.name, format="mp3")
+        play(audio)
         os.remove(fp.name)
-
 
 # === STREAMLIT UI ===
 st.title("🎤 Voice Interview Bot (Jyothi Swaroop)")
@@ -56,14 +53,14 @@ if st.button("🎙️ Start Recording"):
         user_input = recognizer.recognize_google(audio)
         st.success(f"You said: {user_input}")
 
-        # Query the model
+        # Call LLM
         answer = query_mistral(system_prompt, user_input)
         st.write("🧠 Bot says:", answer)
 
-        # Speak the answer
+        # Speak response
         speak(answer)
 
     except sr.UnknownValueError:
-        st.error("Sorry, I couldn’t understand your voice.")
+        st.error("Sorry, I couldn't understand your voice.")
     except Exception as e:
         st.error(f"Error: {e}")
